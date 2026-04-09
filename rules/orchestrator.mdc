@@ -1,0 +1,105 @@
+---
+description: Multi-agent pipeline orchestrator. Apply when running agent tasks, pipeline stages, or agent-kit workflows.
+alwaysApply: false
+---
+
+# Agent Pipeline Orchestrator
+
+When asked to run a task through the agent-kit pipeline, follow this protocol exactly.
+
+## Overview
+
+The pipeline has 4 stages executed sequentially via isolated Task subagents:
+
+1. **plan** (planner) — break down the task, define test plan
+2. **implement** (implementer) — code changes + self-check
+3. **review** (reviewer) — independent code review, readonly
+4. **qa** (tester) — validate acceptance criteria, readonly
+
+Each stage runs in a fresh subagent with no conversation history from prior stages.
+
+## Setup
+
+1. Run bootstrap to create the run directory:
+   ```
+   node agent-kit/scripts/agent-orchestrator.mjs bootstrap --task-file <path> --run-id <ID>
+   ```
+2. Read the task: `agent-kit/runs/<ID>/task.md`
+
+## Stage execution protocol
+
+For each stage:
+
+1. Read the prompt template: `agent-kit/team/prompts/<stage>.md`
+2. Read the required input files (see Input matrix below)
+3. Build the subagent prompt by replacing `{{placeholders}}` with actual file contents
+4. Set `{{OUTPUT_FILE}}` to `agent-kit/runs/<ID>/handoffs/<stage>.md`
+5. Launch a Task subagent with the assembled prompt
+6. After completion, read the handoff file and extract the verdict
+7. Update `agent-kit/runs/<ID>/status.json` — set stage status to `completed`, verdict, and timestamp
+
+### Input matrix
+
+| Stage     | Inputs                                            | Readonly |
+|-----------|---------------------------------------------------|----------|
+| plan      | task.md                                           | yes      |
+| implement | task.md, plan handoff                             | no       |
+| review    | task.md, implement handoff, review-rubric.md      | yes      |
+| qa        | task.md, implement handoff, qa-rubric.md          | yes      |
+
+### Subagent configuration
+
+- `plan`: `subagent_type: "generalPurpose"`, `readonly: true`
+- `implement`: `subagent_type: "generalPurpose"`, `readonly: false`
+- `review`: `subagent_type: "generalPurpose"`, `readonly: true`
+- `qa`: `subagent_type: "generalPurpose"`, `readonly: false` (needs browser/shell for testing)
+
+## FAIL handling
+
+When review or QA returns `FAIL`:
+
+1. Re-run **implement** with these inputs:
+   - `{{TASK}}` — the task file
+   - `{{PLAN}}` — the plan handoff
+   - `{{FINDINGS}}` — the **full content** of the failing review/QA handoff (findings + verdict)
+   The implementer is a fresh subagent but the code from the previous run is already on disk.
+2. After implement completes, re-run the stage that failed (review or QA)
+3. Maximum 2 fix cycles per failing stage
+4. On 3rd FAIL: stop and report to user with summary of unresolved findings
+
+## Status updates
+
+After each stage completes, update `status.json`:
+
+```javascript
+stage.status = "completed"
+stage.completedAt = new Date().toISOString()
+stage.verdict = "<verdict from handoff>"
+// Set next stage to "in_progress"
+```
+
+On FAIL reopen:
+
+```javascript
+// Reset implement and the failing stage back to pending/in_progress
+```
+
+## Completion
+
+1. After all stages pass, run validation:
+   ```
+   node agent-kit/scripts/agent-orchestrator.mjs validate --run-id <ID>
+   ```
+2. Report to user:
+   - Changed files
+   - Test evidence
+   - Residual risks
+   - Final verdicts per stage
+
+## Important rules
+
+- Never skip a stage.
+- Never pass reasoning from one stage into another (isolation).
+- The implement stage receives the plan; review and QA do NOT receive the plan.
+- If a stage is BLOCKED, stop and ask the user for guidance.
+- Keep all artifacts in `agent-kit/runs/<ID>/handoffs/`.

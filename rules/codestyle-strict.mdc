@@ -1,0 +1,41 @@
+---
+description: Project codestyle rules from codestyle.md
+alwaysApply: true
+---
+
+# Project Codestyle (Strict)
+
+## Core principles
+
+- Use TypeScript for all new source files.
+- Follow SOLID and DRY.
+- Prefer functional React components with hooks.
+
+## Naming
+
+- Components: PascalCase (`MyComponent`).
+- Component files: kebab-case (`my-component.tsx`).
+- Hooks: camelCase with `use` prefix (`useMyHook`).
+- Types and interfaces: PascalCase; interfaces use `I` prefix (`IMyInterface`).
+- Constants: UPPER_SNAKE_CASE (`MY_CONSTANT`).
+- Styled entities: PascalCase with `Styled` prefix (`StyledMyComponent`).
+
+## File and module structure
+
+- Keep component folders structured with explicit entrypoint, main component, styles, types, constants, hooks, nested components, and README when relevant.
+- Keep feature/module folders structured with `components`, `hooks`, `types`, and README when relevant.
+- Keep folder structure documentation up to date with real files.
+
+## README requirements
+
+- Write technical and concise documentation only; no filler.
+- For interfaces, include comments for every field.
+- Reference exact file paths for described entities.
+- Describe implementation flow as "how it works" (not product motivation).
+- Show constants and enums with real values.
+- Include only important implementation details.
+
+## Enforcement
+
+- If a change introduces naming or structure inconsistency, refactor or rename in the same task.
+- If a component/feature lacks required documentation for non-trivial logic, add or update README in the same task.

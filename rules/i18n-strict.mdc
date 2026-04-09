@@ -1,0 +1,31 @@
+---
+description: Strict internationalization rules for all agent changes
+alwaysApply: true
+---
+
+# Strict i18n Rule
+
+## Mandatory
+
+- Do not add user-facing hardcoded strings in code (`.ts`, `.tsx`, `.js`, `.jsx`).
+- Every new or changed UI text must use i18n keys.
+- If adding a new key, update all active locale files in the same change.
+- Keep translation key names stable and semantic (`feature.section.label`), not text-like.
+- Reuse existing keys when meaning is the same; do not create duplicates.
+
+## Locale File Changes
+
+- Keep locale file structures consistent across languages.
+- Do not remove or rename existing keys unless all references are updated safely.
+- Preserve valid JSON format and stable key ordering where practical.
+
+## PR / Change Hygiene
+
+- Mention i18n impact in the change notes when text was added or updated.
+- If translation is missing for a locale, add a TODO key value only if project conventions allow it; otherwise block the change.
+
+## Quick Checks Before Finishing
+
+- Search changed files for new hardcoded UI strings.
+- Confirm each new key exists in every required locale.
+- Confirm there are no orphaned keys from removed UI text.
