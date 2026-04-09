@@ -1,67 +1,67 @@
 # Changelog
 
-## v2.0 — Автоматизация пайплайна
+## v2.0 — Pipeline automation
 
-Полная переработка agent-kit: от ручного copy-paste workflow к автоматической оркестрации через Cursor субагентов.
+This release rebuilds `agent-kit` from a manual copy-paste workflow into an automated pipeline orchestrated by Cursor subagents.
 
-### Ломающие изменения
+### Breaking changes
 
-- Удалены команды: `init`, `start`, `orchestrate`, `next`, `advance`, `complete`, `handoff`, `reopen`, `isolate`.
-- Удалён `team/handoff-template.md` — заменён на role-specific промпт-шаблоны.
-- Стейджи переименованы: `planning` → `plan`, `implementation` → `implement`.
-- Стейджи удалены: `fix` (имплементер сам чинит при FAIL), `closure` (команда `validate` покрывает это).
+- Removed commands: `init`, `start`, `orchestrate`, `next`, `advance`, `complete`, `handoff`, `reopen`, `isolate`.
+- Removed `team/handoff-template.md` and replaced it with role-specific prompt templates.
+- Renamed stages: `planning` → `plan`, `implementation` → `implement`.
+- Removed stages: `fix` (the implementer now resolves issues directly on FAIL), `closure` (covered by the `validate` command).
 
-### Скрипт упрощён (671 → 155 строк)
+### CLI simplification (671 → 155 lines)
 
-- Осталось 3 команды: `bootstrap`, `status`, `validate`.
-- Вся оркестрация пайплайна перенесена из скрипта в AI-агента через `rules/orchestrator.mdc`.
-- `bootstrap` больше не требует `--task-file` — по умолчанию копирует шаблон из `team/task-template.md`.
-- Убрана macOS-зависимость `pbcopy`.
+- Reduced the command surface to `bootstrap`, `status`, and `validate`.
+- Moved pipeline orchestration from script logic to the AI agent in `rules/orchestrator.mdc`.
+- Updated `bootstrap` to use `team/task-template.md` by default when `--task-file` is not provided.
+- Removed the macOS-specific `pbcopy` dependency.
 
-### 4 стейджа вместо 6
+### Stage model (4 instead of 6)
 
-| v1 | v2 | Изменение |
-|----|-----|-----------|
-| planning | plan | переименован |
-| implementation | implement | переименован, также обрабатывает fix-циклы |
-| review | review | без изменений |
-| fix | — | удалён, имплементер чинит сам при FAIL |
-| qa | qa | без изменений |
-| closure | — | удалён, команда `validate` заменяет |
+| v1 | v2 | Change |
+|----|-----|--------|
+| planning | plan | Renamed |
+| implementation | implement | Renamed; now also handles fix cycles |
+| review | review | No change |
+| fix | — | Removed; implementer resolves issues on FAIL |
+| qa | qa | No change |
+| closure | — | Removed; replaced by `validate` |
 
-### Role-specific промпт-шаблоны
+### Role-specific prompt templates
 
-Новая директория `team/prompts/` с отдельным шаблоном на каждый стейдж:
+Added a dedicated `team/prompts/` template for each stage:
 
-- `plan.md` — таблица шагов плана, таблица тест-плана, риски, открытые вопросы.
-- `implement.md` — таблица изменений, self-check чеклист, секция ответов на findings (fix-цикл).
-- `review.md` — таблица findings с моделью severity, строгая изоляция (нет доступа к плану).
-- `qa.md` — таблица валидации AC, таблица browser-шагов, edge cases.
+- `plan.md` — plan steps table, test-plan table, risks, and open questions.
+- `implement.md` — change table, self-check checklist, and findings response section (fix cycle).
+- `review.md` — findings table with severity model and strict isolation (no access to the plan).
+- `qa.md` — acceptance criteria validation table, browser test steps table, and edge cases.
 
-Каждый шаблон использует `{{плейсхолдеры}}`, которые оркестратор заменяет на содержимое файлов перед запуском субагента.
+Each template uses `{{placeholders}}` that are resolved by the orchestrator before launching a subagent.
 
 ### Orchestrator rule (`rules/orchestrator.mdc`)
 
-Новый Cursor rule, автоматизирующий весь пайплайн:
+Added a Cursor rule that automates the full pipeline:
 
-- Читает промпт-шаблоны и собирает промпты для субагентов.
-- Запускает изолированные Task-субагенты на каждый стейдж.
-- Парсит вердикты из handoff-файлов.
-- Обрабатывает FAIL → re-implement → re-review/re-test циклы (макс. 2).
-- Обновляет `status.json` после каждого стейджа.
-- Запускает `validate` по завершении.
+- Reads prompt templates and composes stage-specific prompts.
+- Launches isolated Task subagents for each stage.
+- Parses stage verdicts from handoff files.
+- Handles FAIL → re-implement → re-review/re-test loops (maximum 2 cycles).
+- Updates `status.json` after each stage transition.
+- Runs `validate` at pipeline completion.
 
-### Workflow
+### Workflow impact
 
-До (v1): ~36 ручных действий на задачу (скопировать промпт, открыть чат, вставить, выполнить, сохранить handoff, запустить handoff-команду, повторить × 6 стейджей).
+Before (v1): ~36 manual actions per task (copy prompt, open chat, paste, run, save handoff, run handoff command, repeat across 6 stages).
 
-После (v2): 3 действия — `bootstrap`, заполнить task.md, одно сообщение в чат.
+After (v2): 3 actions — run `bootstrap`, complete `task.md`, send one chat message.
 
 ### npm scripts
 
 ```
-agent:bootstrap      Создать новый pipeline run
-agent:status         Показать состояние пайплайна
-agent:validate       Проверить Definition of Done
-agent:rules:install  Скопировать rules в .cursor/rules/
+agent:bootstrap      Create a new pipeline run
+agent:status         Show pipeline state
+agent:validate       Check Definition of Done
+agent:rules:install  Copy rules to .cursor/rules/
 ```

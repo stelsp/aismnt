@@ -53,7 +53,7 @@ Open `agent-kit/runs/TASK-001/task.md` — fill in goal, scope, constraints, acc
 
 Open a new chat and say:
 
-> Запусти agent-kit pipeline для TASK-001
+> Run the agent-kit pipeline for TASK-001
 
 The orchestrator launches isolated subagents: plan → implement → review → qa.
 FAIL cycles are handled automatically. Handoffs are saved to `runs/TASK-001/handoffs/`.

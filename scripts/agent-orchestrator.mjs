@@ -109,7 +109,7 @@ const cmdBootstrap = () => {
   }
 
   console.log(`\nNext: open a chat and say:`);
-  console.log(`  Запусти agent-kit pipeline для ${runId}`);
+  console.log(`  Run the agent-kit pipeline for ${runId}`);
 };
 
 const cmdStatus = () => {
